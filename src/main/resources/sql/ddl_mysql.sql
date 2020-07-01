@@ -1,3 +1,4 @@
+DROP DATABASE IF EXISTS inquiry;
 CREATE DATABASE inquiry;
 USE inquiry;
 

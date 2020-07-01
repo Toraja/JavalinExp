@@ -1,6 +1,7 @@
 package inquiry.inquiry;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import javax.sql.DataSource;
 
@@ -25,8 +26,7 @@ public class InquiryDBTest {
 
     @SuppressWarnings({ "resource" })
     public InquiryDBTest() throws Exception {
-        // new ImageFromDockerfile().withDockerfilePath();
-        container = new MySQLContainer<>("mysql:8.0.20")
+        container = new MySQLContainer<>("mysql:latest")
                 .withDatabaseName("inquiry").withUsername("root")
                 .withPassword("").withInitScript("sql/ddl_mysql.sql");
     }
