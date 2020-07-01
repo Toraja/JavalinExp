@@ -1,0 +1,11 @@
+# Compiled materials
+target/
+
+# eclipse related
+.settings/
+.project
+.classpath
+
+# misc
+*.db
+*.vim

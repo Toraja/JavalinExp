@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS inquiry (
+  id INTEGER PRIMARY KEY,
+  name  TEXT NOT NULL,
+  email TEXT NOT NULL,
+  title TEXT NOT NULL,
+  detail TEXT NOT NULL
+);
