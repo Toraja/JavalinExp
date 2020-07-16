@@ -3,43 +3,64 @@ package inquiry.inquiry;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import javax.sql.DataSource;
-
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
+import java.nio.file.Paths;
+import java.util.function.Consumer;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.JdbcDatabaseContainer;
-import org.testcontainers.containers.MySQLContainer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.output.OutputFrame;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import inquiry.helper.DockerfileMySQLContainer;
 import inquiry.util.repository.Option;
 
 @Testcontainers
 public class InquiryDBTest {
     private InquiryDB db;
     @Container
-    private MySQLContainer<?> container;
+    private DockerfileMySQLContainer<?> container;
 
     @SuppressWarnings({ "resource" })
     public InquiryDBTest() throws Exception {
-        container = new MySQLContainer<>("mysql:latest")
+        // original way using public image
+        // container = new MySQLContainer<>("mysql:latest")
+        // .withDatabaseName("inquiry").withUsername("root")
+        // .withPassword("").withInitScript("sql/ddl_mysql.sql");
+
+        ImageFromDockerfile img = new ImageFromDockerfile()
+                .withFileFromPath(".", Paths.get("./"));
+        // using `withDockerfile()`, it ends up as NullPointerException if not
+        // absolute path. However, With absolute path, it hangs and never ends.
+        // .withDockerfile(Paths.get("db.Dockerfile").toAbsolutePath());
+
+        // 'withExposedPorts' is required or `container.start()` will fail
+        container = new DockerfileMySQLContainer<>(img)
                 .withDatabaseName("inquiry").withUsername("root")
-                .withPassword("").withInitScript("sql/ddl_mysql.sql");
+                .withPassword("").withExposedPorts(3306);
     }
 
     @BeforeEach
     public void setup() {
         container.start();
-        db = new InquiryDB(getDataSource(container));
+        // must be after container started or will be error
+        container.followOutput(getLogConsumer());
+        db = new InquiryDB(container.getDataSource());
     }
 
     @AfterEach
     public void teardown() {
         container.close();
+    }
+
+    private Consumer<OutputFrame> getLogConsumer() {
+        Logger logger = LoggerFactory.getLogger(InquiryDBTest.class);
+        return new Slf4jLogConsumer(logger);
     }
 
     @Test
@@ -84,14 +105,5 @@ public class InquiryDBTest {
 
         int count = db.getTotalCount();
         assertEquals(inqs.length, count);
-    }
-
-    private DataSource getDataSource(JdbcDatabaseContainer<?> container) {
-        HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(container.getJdbcUrl());
-        config.setUsername(container.getUsername());
-        config.setPassword(container.getPassword());
-        config.setDriverClassName(container.getDriverClassName());
-        return new HikariDataSource(config);
     }
 }
